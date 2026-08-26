@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="えきクイズ">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#EAF6FF">
+<meta name="description" content="となりの駅から、あいだの駅を4択で当てる子ども向け駅クイズ">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<title>えきの あいだは なーんだ?</title>
+<style>
+  :root{
+    --bg:#EAF6FF; --card:#FFF; --text:#2B3A55; --soft:#6B7A99;
+    --shadow:#D8E0EC; --sun:#FFC93C; --sun-dark:#C88A00; --track:#B9C6D9;
+    --ok:#2BB673; --ng:#E5556E;
+    --r-lg:24px; --r-md:18px;
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent;
+     -webkit-user-select:none; -moz-user-select:none; -ms-user-select:none; user-select:none; }
+  html,body{ height:100%; margin:0; }
+  body{
+    background:radial-gradient(circle at 15% 8%,#fff 0%,rgba(255,255,255,0) 42%),
+               radial-gradient(circle at 88% 88%,#fff 0%,rgba(255,255,255,0) 38%),var(--bg);
+    font-family:"Hiragino Maru Gothic ProN","ヒラギノ丸ゴ ProN W4","BIZ UDPGothic","Yu Gothic",sans-serif;
+    color:var(--text); display:flex; flex-direction:column; align-items:center;
+    padding:0 0 28px; -webkit-text-size-adjust:100%;
+  }
+  #app{ width:100%; max-width:460px; padding:0 16px; position:relative; }
+  .rail-strip{ width:100%; height:14px; position:relative; overflow:hidden;
+    background:linear-gradient(var(--track),var(--track)) center/100% 4px no-repeat; }
+  .rail-strip::before{ content:""; position:absolute; top:0; right:0; bottom:0; left:0;
+    background-image:repeating-linear-gradient(90deg,var(--track) 0 4px,rgba(0,0,0,0) 4px 16px);
+    background-position:center; background-size:100% 14px; }
+  header.topbar{ display:flex; align-items:center; justify-content:space-between; padding:14px 2px 6px; gap:6px; }
+  .brand{ display:flex; align-items:center; gap:7px; min-width:0; }
+  .brand h1{ font-size:16px; margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .top-btns{ display:flex; gap:7px; flex-shrink:0; }
+  .icon-btn{ width:40px; height:40px; border-radius:50%; border:none; background:var(--card);
+    box-shadow:0 3px 0 rgba(43,58,85,.14),0 2px 6px rgba(43,58,85,.10);
+    display:flex; align-items:center; justify-content:center; font-size:18px; cursor:pointer; padding:0; }
+  .icon-btn:active{ transform:translateY(2px); box-shadow:0 1px 0 rgba(43,58,85,.14); }
+  .panel{ display:none; background:var(--card); border-radius:var(--r-lg); padding:16px 18px 18px;
+    box-shadow:0 5px 0 var(--shadow),0 8px 20px rgba(43,58,85,.12); margin-bottom:16px; }
+  .panel.open{ display:block; }
+  .panel h2{ font-size:15px; margin:0 0 6px; }
+  .panel label{ display:block; font-size:12.5px; color:var(--soft); margin:12px 0 5px; }
+  .panel select,.panel input[type=range]{ width:100%; }
+  .panel select{ font-family:inherit; font-size:14px; padding:9px 10px; border-radius:12px;
+    border:2px solid var(--shadow); background:#fff; color:var(--text); }
+  .panel .test{ margin-top:14px; border:none; border-radius:999px; padding:11px 18px; font-family:inherit;
+    font-size:14px; font-weight:700; background:var(--sun); color:#5c4000; cursor:pointer; box-shadow:0 3px 0 var(--sun-dark); }
+  .panel .test:active{ transform:translateY(2px); box-shadow:0 1px 0 var(--sun-dark); }
+  .panel .note{ font-size:11.5px; color:var(--soft); margin-top:12px; line-height:1.6; }
+  .screen{ display:none; }
+  .screen.active{ display:block; -webkit-animation:fadeIn .25s ease; animation:fadeIn .25s ease; }
+  @-webkit-keyframes fadeIn{ from{opacity:0;} to{opacity:1;} }
+  @keyframes fadeIn{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;} }
+  .intro{ font-size:14px; color:var(--soft); margin:2px 4px 16px; line-height:1.65; }
+  .cat{ margin-bottom:14px; }
+  .cat-head{ display:flex; align-items:center; justify-content:space-between; width:100%;
+    border:none; background:var(--card); border-radius:var(--r-md); padding:13px 16px;
+    box-shadow:0 4px 0 var(--shadow); font-family:inherit; color:inherit; font-size:15px;
+    font-weight:800; cursor:pointer; text-align:left; }
+  .cat-head:active{ transform:translateY(2px); box-shadow:0 2px 0 var(--shadow); }
+  .cat-head .cnt{ font-size:12px; font-weight:400; color:var(--soft); }
+  .cat-body{ display:none; padding-top:12px; }
+  .cat.open .cat-body{ display:block; }
+  .cat.open .cat-head .arw{ transform:rotate(90deg); }
+  .arw{ display:inline-block; margin-left:8px; color:var(--soft); transition:transform .18s ease; }
+  .line-card{ display:flex; align-items:center; gap:12px; width:100%; border:none; text-align:left;
+    background:var(--card); border-radius:var(--r-md); padding:12px 14px; margin-bottom:10px;
+    box-shadow:0 4px 0 var(--cs,var(--shadow)),0 4px 10px rgba(43,58,85,.07);
+    cursor:pointer; font-family:inherit; color:inherit; }
+  .line-card:active{ transform:translateY(3px); box-shadow:0 1px 0 var(--cs,var(--shadow)); }
+  .line-card .badge{ width:42px; height:42px; border-radius:50%; display:flex;
+    align-items:center; justify-content:center; flex-shrink:0; }
+  .line-card .meta{ flex:1; min-width:0; }
+  .line-card .name{ font-size:15.5px; font-weight:700; margin-bottom:1px; }
+  .line-card .desc{ font-size:11.5px; color:var(--soft); }
+  .line-card .chev{ font-size:20px; color:var(--soft); }
+  .quizbar{ display:flex; align-items:center; justify-content:space-between; margin:10px 0 10px; gap:8px; }
+  .pill{ display:flex; align-items:center; gap:7px; background:var(--card); padding:8px 13px;
+    border-radius:999px; box-shadow:0 3px 0 rgba(43,58,85,.10); font-weight:700; font-size:12.5px; max-width:60%; }
+  .pill .nm{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .pill .dot{ width:12px; height:12px; border-radius:50%; flex-shrink:0; }
+  .pill.score{ font-size:14px; flex-shrink:0; }
+  .progress{ display:flex; gap:5px; margin-bottom:12px; }
+  .progress i{ flex:1; height:7px; border-radius:99px; background:var(--shadow); }
+  .progress i.ok{ background:var(--ok); }
+  .progress i.ng{ background:var(--ng); }
+  .segcard{ background:var(--card); border-radius:var(--r-lg); padding:14px 10px 10px;
+    box-shadow:0 5px 0 rgba(43,58,85,.08),0 6px 16px rgba(43,58,85,.08); margin-bottom:16px; }
+  .segcard .prompt{ text-align:center; font-size:13px; color:var(--soft); margin-bottom:2px; }
+  svg.segsvg{ display:block; width:100%; height:auto; }
+  .replay-row{ display:flex; justify-content:center; margin-top:2px; }
+  .speak-btn{ width:52px; height:52px; border-radius:50%; border:none; background:#80C241;
+    color:#fff; font-size:22px; cursor:pointer; box-shadow:0 4px 0 rgba(0,0,0,.16);
+    display:flex; align-items:center; justify-content:center; padding:0; }
+  .speak-btn:active{ transform:translateY(3px); box-shadow:0 1px 0 rgba(0,0,0,.16); }
+  .choices{ display:grid; grid-template-columns:1fr 1fr; grid-gap:12px; gap:12px; }
+  .choice{ background:var(--card); border:none; border-radius:var(--r-md); padding:15px 6px;
+    box-shadow:0 4px 0 var(--shadow),0 4px 10px rgba(43,58,85,.06);
+    cursor:pointer; text-align:center; font-family:inherit; color:inherit; min-height:66px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .choice:active{ transform:translateY(3px); box-shadow:0 1px 0 var(--shadow); }
+  .choice .ck{ font-size:16px; font-weight:800; line-height:1.25; }
+  .choice .ch{ font-size:10.5px; color:var(--soft); margin-top:3px; }
+  .choice.correct{ background:var(--sun); box-shadow:0 4px 0 var(--sun-dark); }
+  .choice.correct .ch{ color:#7a5b00; }
+  .choice.picked-wrong{ background:#FFE1E6; box-shadow:0 4px 0 #E5556E; }
+  .choice.dim{ opacity:.4; }
+  .burst{ position:absolute; font-size:20px; pointer-events:none; }
+  .tip{ text-align:center; font-size:12.5px; color:var(--soft); margin-top:16px; }
+
+  /* 大きな ◯ / ✕ */
+  #verdict{ position:fixed; top:0; left:0; right:0; bottom:0; display:none;
+    align-items:center; justify-content:center; z-index:99; pointer-events:none;
+    background:rgba(255,255,255,.55); }
+  #verdict.show{ display:flex; }
+  #verdict .mark{ font-size:44vw; line-height:1; font-weight:900;
+    -webkit-animation:pop .45s cubic-bezier(.2,1.5,.4,1); animation:pop .45s cubic-bezier(.2,1.5,.4,1); }
+  #verdict.ok .mark{ color:var(--ok); }
+  #verdict.ng .mark{ color:var(--ng); }
+  #verdict .sub{ position:absolute; bottom:17%; left:0; right:0; text-align:center;
+    display:flex; flex-direction:column; align-items:center; gap:1px; padding:0 16px; }
+  #verdict .sub .lead{ font-size:15px; font-weight:700; opacity:.85; margin-bottom:4px; }
+  #verdict .sub .kana{ font-size:14px; font-weight:700; opacity:.9; }
+  #verdict .sub .kanji{ font-size:30px; font-weight:900; line-height:1.15;
+    max-width:100%; overflow-wrap:anywhere; }
+  #verdict.ok .sub{ color:var(--ok); }
+  #verdict.ng .sub{ color:var(--ng); }
+  @-webkit-keyframes pop{ 0%{transform:scale(.2); opacity:0;} 100%{transform:scale(1); opacity:1;} }
+  @keyframes pop{ 0%{transform:scale(.2); opacity:0;} 60%{transform:scale(1.08);} 100%{transform:scale(1); opacity:1;} }
+
+  /* 結果 */
+  .done{ text-align:center; padding:20px 10px 10px; }
+  .done .emoji{ font-size:50px; }
+  .done h2{ font-size:22px; margin:8px 0 4px; }
+  .done p.line{ color:var(--soft); margin:0 0 16px; font-size:14px; }
+  .scorebox{ background:var(--card); border-radius:var(--r-lg); padding:20px 16px;
+    box-shadow:0 5px 0 var(--shadow),0 6px 16px rgba(43,58,85,.08); margin-bottom:18px; }
+  .scorebox .big{ font-size:15px; color:var(--soft); }
+  .scorebox .big b{ font-size:46px; color:var(--text); font-weight:900; margin:0 4px; }
+  .scorebox .pct{ font-size:13px; color:var(--soft); margin-top:4px; }
+  .scorebox .stars{ font-size:22px; letter-spacing:3px; margin-top:10px; }
+  .btn-row{ display:flex; flex-direction:column; gap:12px; }
+  .btn{ border:none; border-radius:999px; padding:15px 20px; font-size:15.5px; font-weight:700;
+    cursor:pointer; color:#fff; font-family:inherit; }
+  .btn.primary{ background:#80C241; box-shadow:0 4px 0 #5E9A2C; }
+  .btn.primary:active{ transform:translateY(3px); box-shadow:0 1px 0 #5E9A2C; }
+  .btn.secondary{ background:#fff; color:var(--text); box-shadow:0 4px 0 var(--shadow); }
+  .btn.secondary:active{ transform:translateY(3px); box-shadow:0 1px 0 var(--shadow); }
+  .btn.danger{ background:#fff; color:var(--ng); box-shadow:0 4px 0 var(--shadow); }
+
+  /* 履歴 */
+  .hist-sum{ display:flex; gap:10px; margin-bottom:16px; }
+  .hist-sum div{ flex:1; background:var(--card); border-radius:var(--r-md); padding:12px 8px;
+    text-align:center; box-shadow:0 4px 0 var(--shadow); }
+  .hist-sum b{ display:block; font-size:22px; font-weight:900; }
+  .hist-sum span{ font-size:11px; color:var(--soft); }
+  .hrow{ display:flex; align-items:center; gap:11px; background:var(--card);
+    border-radius:var(--r-md); padding:11px 14px; margin-bottom:9px; box-shadow:0 3px 0 var(--shadow); }
+  .hrow .dot{ width:11px; height:11px; border-radius:50%; flex-shrink:0; }
+  .hrow .info{ flex:1; min-width:0; }
+  .hrow .ln{ font-size:14px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .hrow .dt{ font-size:11px; color:var(--soft); }
+  .hrow .sc{ font-size:15px; font-weight:900; flex-shrink:0; }
+  .hrow .sc small{ font-size:11px; font-weight:400; color:var(--soft); }
+  .empty{ text-align:center; color:var(--soft); font-size:13.5px; padding:34px 10px; line-height:1.8; }
+  @media (prefers-reduced-motion: reduce){ *{ animation:none !important; -webkit-animation:none !important; transition:none !important; } }
+</style>
+</head>
+<body>
+<div id="verdict"><span class="mark" id="verdictMark">◯</span><span class="sub" id="verdictSub"></span></div>
+<div id="app">
+  <div class="rail-strip"></div>
+  <header class="topbar">
+    <div class="brand"><span style="font-size:22px;">🚉</span><h1>えきの あいだは なーんだ?</h1></div>
+    <div class="top-btns">
+      <button class="icon-btn" id="histBtn" aria-label="きろく">🏆</button>
+      <button class="icon-btn" id="gearBtn" aria-label="おとの せってい">⚙️</button>
+      <button class="icon-btn" id="muteBtn" aria-label="おとを けす">🔊</button>
+    </div>
+  </header>
+  <div class="panel" id="panel">
+    <h2>おとの せってい</h2>
+    <label for="voiceSel">よみあげる こえ</label>
+    <select id="voiceSel"></select>
+    <label for="rateRange">はなす はやさ　<span id="rateVal">1</span></label>
+    <input type="range" id="rateRange" min="0.6" max="1.3" step="0.05" value="1">
+    <button class="test" id="testBtn">こえを ためす</button>
+    <p class="note">iPhone は「設定 &gt; アクセシビリティ &gt; 読み上げコンテンツ &gt; 声 &gt; 日本語」で Kyoko の「拡張」音声を入れると、ぐっと自然になります。</p>
+  </div>
+
+  <section class="screen active" id="screen-select">
+    <p class="intro">ろせんを えらんでね。りょうどなりの えきが ヒント。まんなかの えきを 4つの なかから あててみよう!ぜんぶで 8もん だよ。</p>
+    <div id="catList"></div>
+  </section>
+
+  <section class="screen" id="screen-quiz">
+    <div class="quizbar">
+      <div class="pill"><span class="dot" id="pillDot"></span><span class="nm" id="pillName"></span></div>
+      <div class="pill score"><span id="qNo">1</span><span style="color:var(--soft);font-weight:400;">もんめ ・</span><span>⭐</span><span id="starCount">0</span></div>
+    </div>
+    <div class="progress" id="progress"></div>
+    <div class="segcard">
+      <div class="prompt">この まんなかの えきは なーんだ?</div>
+      <svg class="segsvg" id="segSvg" viewBox="0 0 320 112" xmlns="http://www.w3.org/2000/svg" role="img"></svg>
+      <div class="replay-row"><button class="speak-btn" id="speakBtn" aria-label="もういちど きく">🔊</button></div>
+    </div>
+    <div class="choices" id="choices"></div>
+    <p class="tip">こたえの ボタンを タップしてね</p>
+  </section>
+
+  <section class="screen" id="screen-complete">
+    <div class="done">
+      <div class="emoji" id="doneEmoji">🎉</div>
+      <h2 id="doneTitle">やったね!</h2>
+      <p class="line" id="doneLine"></p>
+      <div class="scorebox">
+        <div class="big"><span id="doneTotal">8</span>もんちゅう<b id="doneScore">0</b>せいかい</div>
+        <div class="pct" id="donePct"></div>
+        <div class="stars" id="doneStars"></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn primary" id="retryBtn">もういちど あそぶ</button>
+        <button class="btn secondary" id="otherBtn">べつの ろせんに する</button>
+        <button class="btn secondary" id="toHistBtn">きろくを みる</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="screen" id="screen-hist">
+    <p class="intro">これまでの きろく</p>
+    <div class="hist-sum">
+      <div><b id="hsGames">0</b><span>あそんだ かいすう</span></div>
+      <div><b id="hsCorrect">0</b><span>ぜんぶの せいかい</span></div>
+      <div><b id="hsBest">-</b><span>さいこう きろく</span></div>
+    </div>
+    <div id="histList"></div>
+    <div class="btn-row" style="margin-top:16px;">
+      <button class="btn primary" id="histBackBtn">もどる</button>
+      <button class="btn danger" id="histClearBtn">きろくを ぜんぶ けす</button>
+    </div>
+  </section>
+</div>
+<script>
+(function(){
+"use strict";
+/* 駅データ: "漢字|よみ" をカンマ区切り */
+var CATS = [
+  { cat:"新幹線", lines:[
+    { n:"東北新幹線", c:"#00B04F", s:"東京|とうきょう,上野|うえの,大宮|おおみや,小山|おやま,宇都宮|うつのみや,那須塩原|なすしおばら,新白河|しんしらかわ,郡山|こおりやま,福島|ふくしま,白石蔵王|しろいしざおう,仙台|せんだい,古川|ふるかわ,くりこま高原|くりこまこうげん,一ノ関|いちのせき,水沢江刺|みずさわえさし,北上|きたかみ,新花巻|しんはなまき,盛岡|もりおか,いわて沼宮内|いわてぬまくない,二戸|にのへ,八戸|はちのへ,七戸十和田|しちのへとわだ,新青森|しんあおもり" },
+    { n:"山形新幹線", c:"#F5A200", s:"東京|とうきょう,上野|うえの,大宮|おおみや,宇都宮|うつのみや,那須塩原|なすしおばら,郡山|こおりやま,福島|ふくしま,米沢|よねざわ,高畠|たかはた,赤湯|あかゆ,かみのやま温泉|かみのやまおんせん,山形|やまがた,天童|てんどう,さくらんぼ東根|さくらんぼひがしね,村山|むらやま,大石田|おおいしだ,新庄|しんじょう" },
+    { n:"秋田新幹線", c:"#E5007F", s:"東京|とうきょう,上野|うえの,大宮|おおみや,仙台|せんだい,盛岡|もりおか,雫石|しずくいし,田沢湖|たざわこ,角館|かくのだて,大曲|おおまがり,秋田|あきた" },
+    { n:"上越新幹線", c:"#4EA72E", s:"東京|とうきょう,上野|うえの,大宮|おおみや,熊谷|くまがや,本庄早稲田|ほんじょうわせだ,高崎|たかさき,上毛高原|じょうもうこうげん,越後湯沢|えちごゆざわ,浦佐|うらさ,長岡|ながおか,燕三条|つばめさんじょう,新潟|にいがた" },
+    { n:"北陸新幹線", c:"#00A0DE", s:"東京|とうきょう,上野|うえの,大宮|おおみや,熊谷|くまがや,本庄早稲田|ほんじょうわせだ,高崎|たかさき,安中榛名|あんなかはるな,軽井沢|かるいざわ,佐久平|さくだいら,上田|うえだ,長野|ながの,飯山|いいやま,上越妙高|じょうえつみょうこう,糸魚川|いといがわ,黒部宇奈月温泉|くろべうなづきおんせん,富山|とやま,新高岡|しんたかおか,金沢|かなざわ,小松|こまつ,加賀温泉|かがおんせん,芦原温泉|あわらおんせん,福井|ふくい,越前たけふ|えちぜんたけふ,敦賀|つるが" },
+    { n:"東海道新幹線", c:"#1B4EA0", s:"東京|とうきょう,品川|しながわ,新横浜|しんよこはま,小田原|おだわら,熱海|あたみ,三島|みしま,新富士|しんふじ,静岡|しずおか,掛川|かけがわ,浜松|はままつ,豊橋|とよはし,三河安城|みかわあんじょう,名古屋|なごや,岐阜羽島|ぎふはしま,米原|まいばら,京都|きょうと,新大阪|しんおおさか" }
+  ]},
+  { cat:"山手・京浜東北", lines:[
+    { n:"山手線", c:"#9ACD32", loop:true, s:"東京|とうきょう,神田|かんだ,秋葉原|あきはばら,御徒町|おかちまち,上野|うえの,鶯谷|うぐいすだに,日暮里|にっぽり,西日暮里|にしにっぽり,田端|たばた,駒込|こまごめ,巣鴨|すがも,大塚|おおつか,池袋|いけぶくろ,目白|めじろ,高田馬場|たかだのばば,新大久保|しんおおくぼ,新宿|しんじゅく,代々木|よよぎ,原宿|はらじゅく,渋谷|しぶや,恵比寿|えびす,目黒|めぐろ,五反田|ごたんだ,大崎|おおさき,品川|しながわ,高輪ゲートウェイ|たかなわゲートウェイ,田町|たまち,浜松町|はままつちょう,新橋|しんばし,有楽町|ゆうらくちょう" },
+    { n:"京浜東北線・根岸線", c:"#00B2E5", s:"大宮|おおみや,さいたま新都心|さいたましんとしん,与野|よの,北浦和|きたうらわ,浦和|うらわ,南浦和|みなみうらわ,蕨|わらび,西川口|にしかわぐち,川口|かわぐち,赤羽|あかばね,東十条|ひがしじゅうじょう,王子|おうじ,上中里|かみなかざと,田端|たばた,西日暮里|にしにっぽり,日暮里|にっぽり,鶯谷|うぐいすだに,上野|うえの,御徒町|おかちまち,秋葉原|あきはばら,神田|かんだ,東京|とうきょう,有楽町|ゆうらくちょう,新橋|しんばし,浜松町|はままつちょう,田町|たまち,高輪ゲートウェイ|たかなわゲートウェイ,品川|しながわ,大井町|おおいまち,大森|おおもり,蒲田|かまた,川崎|かわさき,鶴見|つるみ,新子安|しんこやす,東神奈川|ひがしかながわ,横浜|よこはま,桜木町|さくらぎちょう,関内|かんない,石川町|いしかわちょう,山手|やまて,根岸|ねぎし,磯子|いそご,新杉田|しんすぎた,洋光台|ようこうだい,港南台|こうなんだい,本郷台|ほんごうだい,大船|おおふな" }
+  ]},
+  { cat:"中央・総武系統", lines:[
+    { n:"中央線快速", c:"#F15A22", s:"東京|とうきょう,神田|かんだ,御茶ノ水|おちゃのみず,四ツ谷|よつや,新宿|しんじゅく,中野|なかの,荻窪|おぎくぼ,吉祥寺|きちじょうじ,三鷹|みたか,武蔵境|むさしさかい,東小金井|ひがしこがねい,武蔵小金井|むさしこがねい,国分寺|こくぶんじ,西国分寺|にしこくぶんじ,国立|くにたち,立川|たちかわ,日野|ひの,豊田|とよだ,八王子|はちおうじ,西八王子|にしはちおうじ,高尾|たかお" },
+    { n:"中央・総武線（各駅停車）", c:"#FFD400", s:"三鷹|みたか,吉祥寺|きちじょうじ,西荻窪|にしおぎくぼ,荻窪|おぎくぼ,阿佐ケ谷|あさがや,高円寺|こうえんじ,中野|なかの,東中野|ひがしなかの,大久保|おおくぼ,新宿|しんじゅく,代々木|よよぎ,千駄ケ谷|せんだがや,信濃町|しなのまち,四ツ谷|よつや,市ケ谷|いちがや,飯田橋|いいだばし,水道橋|すいどうばし,御茶ノ水|おちゃのみず,秋葉原|あきはばら,浅草橋|あさくさばし,両国|りょうごく,錦糸町|きんしちょう,亀戸|かめいど,平井|ひらい,新小岩|しんこいわ,小岩|こいわ,市川|いちかわ,本八幡|もとやわた,下総中山|しもうさなかやま,西船橋|にしふなばし,船橋|ふなばし,東船橋|ひがしふなばし,津田沼|つだぬま,幕張本郷|まくはりほんごう,幕張|まくはり,新検見川|しんけみがわ,稲毛|いなげ,西千葉|にしちば,千葉|ちば" },
+    { n:"総武本線", c:"#FFD400", s:"千葉|ちば,東千葉|ひがしちば,都賀|つが,四街道|よつかいどう,物井|ものい,佐倉|さくら,南酒々井|みなみしすい,榎戸|えのきど,八街|やちまた,日向|ひゅうが,成東|なるとう,松尾|まつお,横芝|よこしば,飯倉|いいぐら,八日市場|ようかいちば,干潟|ひがた,旭|あさひ,飯岡|いいおか,倉橋|くらはし,猿田|さるだ,松岸|まつぎし,銚子|ちょうし" },
+    { n:"青梅線", c:"#F15A22", s:"立川|たちかわ,西立川|にしたちかわ,東中神|ひがしなかがみ,中神|なかがみ,昭島|あきしま,拝島|はいじま,牛浜|うしはま,福生|ふっさ,羽村|はむら,小作|おざく,河辺|かべ,東青梅|ひがしおうめ,青梅|おうめ,宮ノ平|みやのひら,日向和田|ひなたわだ,石神前|いしがみまえ,二俣尾|ふたまたお,軍畑|いくさばた,沢井|さわい,御嶽|みたけ,川井|かわい,古里|こり,鳩ノ巣|はとのす,白丸|しろまる,奥多摩|おくたま" },
+    { n:"五日市線", c:"#F15A22", s:"拝島|はいじま,熊川|くまがわ,東秋留|ひがしあきる,秋川|あきがわ,武蔵引田|むさしひきだ,武蔵増戸|むさしますこ,武蔵五日市|むさしいつかいち" }
+  ]},
+  { cat:"東海道・横須賀系統", lines:[
+    { n:"東海道線", c:"#F68B1E", s:"東京|とうきょう,新橋|しんばし,品川|しながわ,川崎|かわさき,横浜|よこはま,戸塚|とつか,大船|おおふな,藤沢|ふじさわ,辻堂|つじどう,茅ケ崎|ちがさき,平塚|ひらつか,大磯|おおいそ,二宮|にのみや,国府津|こうづ,鴨宮|かものみや,小田原|おだわら,早川|はやかわ,根府川|ねぶかわ,真鶴|まなづる,湯河原|ゆがわら,熱海|あたみ" },
+    { n:"横須賀線", c:"#0067C0", s:"東京|とうきょう,新橋|しんばし,品川|しながわ,西大井|にしおおい,武蔵小杉|むさしこすぎ,新川崎|しんかわさき,横浜|よこはま,保土ケ谷|ほどがや,東戸塚|ひがしとつか,戸塚|とつか,大船|おおふな,北鎌倉|きたかまくら,鎌倉|かまくら,逗子|ずし,東逗子|ひがしずし,田浦|たうら,横須賀|よこすか,衣笠|きぬがさ,久里浜|くりはま" },
+    { n:"湘南新宿ライン", c:"#E21F26", s:"大宮|おおみや,浦和|うらわ,赤羽|あかばね,池袋|いけぶくろ,新宿|しんじゅく,渋谷|しぶや,恵比寿|えびす,大崎|おおさき,武蔵小杉|むさしこすぎ,横浜|よこはま,戸塚|とつか,大船|おおふな,藤沢|ふじさわ,辻堂|つじどう,茅ケ崎|ちがさき,平塚|ひらつか,大磯|おおいそ,二宮|にのみや,国府津|こうづ,鴨宮|かものみや,小田原|おだわら" },
+    { n:"上野東京ライン", c:"#F68B1E", s:"大宮|おおみや,さいたま新都心|さいたましんとしん,浦和|うらわ,赤羽|あかばね,尾久|おく,上野|うえの,東京|とうきょう,新橋|しんばし,品川|しながわ,川崎|かわさき,横浜|よこはま,戸塚|とつか,大船|おおふな,藤沢|ふじさわ,茅ケ崎|ちがさき,平塚|ひらつか,国府津|こうづ,小田原|おだわら,熱海|あたみ" }
+  ]},
+  { cat:"東北・高崎系統", lines:[
+    { n:"宇都宮線（東北本線）", c:"#F68B1E", s:"上野|うえの,尾久|おく,赤羽|あかばね,浦和|うらわ,さいたま新都心|さいたましんとしん,大宮|おおみや,土呂|とろ,東大宮|ひがしおおみや,蓮田|はすだ,白岡|しらおか,新白岡|しんしらおか,久喜|くき,東鷲宮|ひがしわしのみや,栗橋|くりはし,古河|こが,野木|のぎ,間々田|ままだ,小山|おやま,小金井|こがねい,自治医大|じちいだい,石橋|いしばし,雀宮|すずめのみや,宇都宮|うつのみや,岡本|おかもと,宝積寺|ほうしゃくじ,氏家|うじいえ,蒲須坂|かますざか,片岡|かたおか,矢板|やいた,野崎|のざき,西那須野|にしなすの,那須塩原|なすしおばら,黒磯|くろいそ" },
+    { n:"高崎線", c:"#F68B1E", s:"大宮|おおみや,宮原|みやはら,上尾|あげお,北上尾|きたあげお,桶川|おけがわ,北本|きたもと,鴻巣|こうのす,北鴻巣|きたこうのす,吹上|ふきあげ,行田|ぎょうだ,熊谷|くまがや,籠原|かごはら,深谷|ふかや,岡部|おかべ,本庄|ほんじょう,神保原|じんぼはら,新町|しんまち,倉賀野|くらがの,高崎|たかさき" }
+  ]},
+  { cat:"常磐系統", lines:[
+    { n:"常磐線（快速）", c:"#00B2A9", s:"上野|うえの,日暮里|にっぽり,三河島|みかわしま,南千住|みなみせんじゅ,北千住|きたせんじゅ,松戸|まつど,柏|かしわ,我孫子|あびこ,天王台|てんのうだい,取手|とりで,藤代|ふじしろ,龍ケ崎市|りゅうがさきし,牛久|うしく,ひたち野うしく|ひたちのうしく,荒川沖|あらかわおき,土浦|つちうら" },
+    { n:"常磐線（各駅停車）", c:"#00B2A9", s:"綾瀬|あやせ,亀有|かめあり,金町|かなまち,松戸|まつど,北松戸|きたまつど,馬橋|まばし,新松戸|しんまつど,北小金|きたこがね,南柏|みなみかしわ,柏|かしわ,北柏|きたかしわ,我孫子|あびこ,天王台|てんのうだい,取手|とりで" }
+  ]},
+  { cat:"郊外・連絡路線", lines:[
+    { n:"武蔵野線", c:"#F15A22", s:"府中本町|ふちゅうほんまち,北府中|きたふちゅう,西国分寺|にしこくぶんじ,新小平|しんこだいら,新秋津|しんあきつ,東所沢|ひがしところざわ,新座|にいざ,北朝霞|きたあさか,西浦和|にしうらわ,武蔵浦和|むさしうらわ,南浦和|みなみうらわ,東浦和|ひがしうらわ,東川口|ひがしかわぐち,南越谷|みなみこしがや,越谷レイクタウン|こしがやレイクタウン,吉川|よしかわ,吉川美南|よしかわみなみ,新三郷|しんみさと,三郷|みさと,南流山|みなみながれやま,新松戸|しんまつど,新八柱|しんやはしら,東松戸|ひがしまつど,市川大野|いちかわおおの,船橋法典|ふなばしほうてん,西船橋|にしふなばし" },
+    { n:"京葉線", c:"#C9252F", s:"東京|とうきょう,八丁堀|はっちょうぼり,越中島|えっちゅうじま,潮見|しおみ,新木場|しんきば,葛西臨海公園|かさいりんかいこうえん,舞浜|まいはま,新浦安|しんうらやす,市川塩浜|いちかわしおはま,二俣新町|ふたまたしんまち,南船橋|みなみふなばし,新習志野|しんならしの,幕張豊砂|まくはりとよすな,海浜幕張|かいひんまくはり,検見川浜|けみがわはま,稲毛海岸|いなげかいがん,千葉みなと|ちばみなと,蘇我|そが" },
+    { n:"横浜線", c:"#7FBE26", s:"東神奈川|ひがしかながわ,大口|おおぐち,菊名|きくな,新横浜|しんよこはま,小机|こづくえ,鴨居|かもい,中山|なかやま,十日市場|とおかいちば,長津田|ながつた,成瀬|なるせ,町田|まちだ,古淵|こぶち,淵野辺|ふちのべ,矢部|やべ,相模原|さがみはら,橋本|はしもと,相原|あいはら,八王子みなみ野|はちおうじみなみの,片倉|かたくら,八王子|はちおうじ" },
+    { n:"南武線", c:"#FFD400", s:"川崎|かわさき,尻手|しって,矢向|やこう,鹿島田|かしまだ,平間|ひらま,向河原|むかいがわら,武蔵小杉|むさしこすぎ,武蔵中原|むさしなかはら,武蔵新城|むさししんじょう,武蔵溝ノ口|むさしみぞのくち,津田山|つだやま,久地|くじ,宿河原|しゅくがわら,登戸|のぼりと,中野島|なかのしま,稲田堤|いなだづつみ,矢野口|やのくち,稲城長沼|いなぎながぬま,南多摩|みなみたま,府中本町|ふちゅうほんまち,分倍河原|ぶばいがわら,西府|にしふ,谷保|やほ,矢川|やがわ,西国立|にしくにたち,立川|たちかわ" },
+    { n:"相模線", c:"#00A0A0", s:"茅ケ崎|ちがさき,北茅ケ崎|きたちがさき,香川|かがわ,寒川|さむかわ,宮山|みややま,倉見|くらみ,門沢橋|もんざわばし,社家|しゃけ,厚木|あつぎ,海老名|えびな,入谷|いりや,相武台下|そうぶだいした,下溝|しもみぞ,原当麻|はらたいま,番田|ばんだ,上溝|かみみぞ,南橋本|みなみはしもと,橋本|はしもと" },
+    { n:"八高線", c:"#9F7FBF", s:"八王子|はちおうじ,北八王子|きたはちおうじ,小宮|こみや,拝島|はいじま,東福生|ひがしふっさ,箱根ケ崎|はこねがさき,金子|かねこ,東飯能|ひがしはんのう,高麗川|こまがわ,毛呂|もろ,越生|おごせ,明覚|みょうかく,小川町|おがわまち,竹沢|たけざわ,折原|おりはら,寄居|よりい,用土|ようど,松久|まつひさ,児玉|こだま,丹荘|たんしょう,群馬藤岡|ぐんまふじおか,北藤岡|きたふじおか,倉賀野|くらがの,高崎|たかさき" },
+    { n:"川越線", c:"#9F7FBF", s:"大宮|おおみや,日進|にっしん,西大宮|にしおおみや,指扇|さしおうぎ,南古谷|みなみふるや,川越|かわごえ,西川越|にしかわごえ,的場|まとば,笠幡|かさはた,武蔵高萩|むさしたかはぎ,高麗川|こまがわ" },
+    { n:"鶴見線", c:"#FFD400", s:"鶴見|つるみ,国道|こくどう,鶴見小野|つるみおの,弁天橋|べんてんばし,浅野|あさの,安善|あんぜん,武蔵白石|むさししらいし,浜川崎|はまかわさき,昭和|しょうわ,扇町|おうぎまち" },
+    { n:"久留里線", c:"#00A0A0", s:"木更津|きさらづ,祇園|ぎおん,上総清川|かずさきよかわ,東清川|ひがしきよかわ,横田|よこた,東横田|ひがしよこた,馬来田|まくた,下郡|しもごおり,小櫃|おびつ,俵田|たわらだ,久留里|くるり,平山|ひらやま,上総松丘|かずさまつおか,上総亀山|かずさかめやま" },
+    { n:"埼京線", c:"#00A650", s:"大宮|おおみや,日進|にっしん,指扇|さしおうぎ,南古谷|みなみふるや,川越|かわごえ,武蔵浦和|むさしうらわ,中浦和|なかうらわ,南与野|みなみよの,与野本町|よのほんまち,北与野|きたよの,戸田公園|とだこうえん,戸田|とだ,北戸田|きたとだ,浮間舟渡|うきまふなど,赤羽|あかばね,十条|じゅうじょう,板橋|いたばし,池袋|いけぶくろ,新宿|しんじゅく,渋谷|しぶや,恵比寿|えびす,大崎|おおさき" }
+  ]},
+  { cat:"東京メトロ", lines:[
+    { n:"銀座線", c:"#FF9500", s:"渋谷|しぶや,表参道|おもてさんどう,外苑前|がいえんまえ,青山一丁目|あおやまいっちょうめ,赤坂見附|あかさかみつけ,溜池山王|ためいけさんのう,虎ノ門|とらのもん,新橋|しんばし,銀座|ぎんざ,京橋|きょうばし,日本橋|にほんばし,三越前|みつこしまえ,神田|かんだ,末広町|すえひろちょう,上野広小路|うえのひろこうじ,上野|うえの,稲荷町|いなりちょう,田原町|たわらまち,浅草|あさくさ" },
+    { n:"丸ノ内線", c:"#E60012", s:"池袋|いけぶくろ,新大塚|しんおおつか,茗荷谷|みょうがだに,後楽園|こうらくえん,本郷三丁目|ほんごうさんちょうめ,御茶ノ水|おちゃのみず,淡路町|あわじちょう,大手町|おおてまち,東京|とうきょう,銀座|ぎんざ,霞ケ関|かすみがせき,国会議事堂前|こっかいぎじどうまえ,赤坂見附|あかさかみつけ,四ツ谷|よつや,四谷三丁目|よつやさんちょうめ,新宿御苑前|しんじゅくぎょえんまえ,新宿三丁目|しんじゅくさんちょうめ,新宿|しんじゅく,西新宿|にししんじゅく,中野坂上|なかのさかうえ,新中野|しんなかの,東高円寺|ひがしこうえんじ,新高円寺|しんこうえんじ,南阿佐ケ谷|みなみあさがや,荻窪|おぎくぼ" },
+    { n:"日比谷線", c:"#B5B5AC", s:"中目黒|なかめぐろ,恵比寿|えびす,広尾|ひろお,六本木|ろっぽんぎ,神谷町|かみやちょう,虎ノ門ヒルズ|とらのもんヒルズ,霞ケ関|かすみがせき,日比谷|ひびや,銀座|ぎんざ,東銀座|ひがしぎんざ,築地|つきじ,八丁堀|はっちょうぼり,茅場町|かやばちょう,人形町|にんぎょうちょう,小伝馬町|こでんまちょう,秋葉原|あきはばら,仲御徒町|なかおかちまち,上野|うえの,入谷|いりや,三ノ輪|みのわ,南千住|みなみせんじゅ,北千住|きたせんじゅ" },
+    { n:"東西線", c:"#009BBF", s:"中野|なかの,落合|おちあい,高田馬場|たかだのばば,早稲田|わせだ,神楽坂|かぐらざか,飯田橋|いいだばし,九段下|くだんした,竹橋|たけばし,大手町|おおてまち,日本橋|にほんばし,茅場町|かやばちょう,門前仲町|もんぜんなかちょう,木場|きば,東陽町|とうようちょう,南砂町|みなみすなまち,西葛西|にしかさい,葛西|かさい,浦安|うらやす,南行徳|みなみぎょうとく,行徳|ぎょうとく,妙典|みょうでん,原木中山|ばらきなかやま,西船橋|にしふなばし" },
+    { n:"千代田線", c:"#00BB85", s:"代々木上原|よよぎうえはら,代々木公園|よよぎこうえん,明治神宮前|めいじじんぐうまえ,表参道|おもてさんどう,乃木坂|のぎざか,赤坂|あかさか,国会議事堂前|こっかいぎじどうまえ,霞ケ関|かすみがせき,日比谷|ひびや,二重橋前|にじゅうばしまえ,大手町|おおてまち,新御茶ノ水|しんおちゃのみず,湯島|ゆしま,根津|ねづ,千駄木|せんだぎ,西日暮里|にしにっぽり,町屋|まちや,北千住|きたせんじゅ,綾瀬|あやせ,北綾瀬|きたあやせ" },
+    { n:"有楽町線", c:"#C1A470", s:"和光市|わこうし,地下鉄成増|ちかてつなります,地下鉄赤塚|ちかてつあかつか,平和台|へいわだい,氷川台|ひかわだい,小竹向原|こたけむかいはら,千川|せんかわ,要町|かなめちょう,池袋|いけぶくろ,東池袋|ひがしいけぶくろ,護国寺|ごこくじ,江戸川橋|えどがわばし,飯田橋|いいだばし,市ケ谷|いちがや,麹町|こうじまち,永田町|ながたちょう,桜田門|さくらだもん,有楽町|ゆうらくちょう,銀座一丁目|ぎんざいっちょうめ,新富町|しんとみちょう,月島|つきしま,豊洲|とよす,辰巳|たつみ,新木場|しんきば" },
+    { n:"半蔵門線", c:"#8F76D6", s:"渋谷|しぶや,表参道|おもてさんどう,青山一丁目|あおやまいっちょうめ,永田町|ながたちょう,半蔵門|はんぞうもん,九段下|くだんした,神保町|じんぼうちょう,大手町|おおてまち,三越前|みつこしまえ,水天宮前|すいてんぐうまえ,清澄白河|きよすみしらかわ,住吉|すみよし,錦糸町|きんしちょう,押上|おしあげ" },
+    { n:"南北線", c:"#00AC9B", s:"目黒|めぐろ,白金台|しろかねだい,白金高輪|しろかねたかなわ,麻布十番|あざぶじゅうばん,六本木一丁目|ろっぽんぎいっちょうめ,溜池山王|ためいけさんのう,永田町|ながたちょう,四ツ谷|よつや,市ケ谷|いちがや,飯田橋|いいだばし,後楽園|こうらくえん,東大前|とうだいまえ,本駒込|ほんこまごめ,駒込|こまごめ,西ケ原|にしがはら,王子|おうじ,王子神谷|おうじかみや,志茂|しも,赤羽岩淵|あかばねいわぶち" },
+    { n:"副都心線", c:"#9C5E31", s:"和光市|わこうし,地下鉄成増|ちかてつなります,地下鉄赤塚|ちかてつあかつか,平和台|へいわだい,氷川台|ひかわだい,小竹向原|こたけむかいはら,千川|せんかわ,要町|かなめちょう,池袋|いけぶくろ,雑司が谷|ぞうしがや,西早稲田|にしわせだ,東新宿|ひがししんじゅく,新宿三丁目|しんじゅくさんちょうめ,北参道|きたさんどう,明治神宮前|めいじじんぐうまえ,渋谷|しぶや" }
+  ]}
+];
+
+/* ---- データ展開 ---- */
+var GROUPS = [];
+CATS.forEach(function(g){
+  GROUPS.push({ cat:g.cat, lines: g.lines.map(function(l){
+    return { name:l.n, color:l.c, loop:!!l.loop,
+      stations: l.s.split(",").map(function(p){ var a = p.split("|"); return {k:a[0], h:a[1]}; }) };
+  })});
+});
+var QPR = 8;
+
+/* ---- 保存（window.storage → localStorage → メモリ の順で使えるものを使う） ---- */
+var HKEY = "eki-quiz:history";
+var memStore = null;
+function loadHistory(cb){
+  if(window.storage && window.storage.get){
+    try{
+      window.storage.get(HKEY).then(function(r){
+        var v = []; try{ v = r && r.value ? JSON.parse(r.value) : []; }catch(e){ v = []; }
+        cb(v instanceof Array ? v : []);
+      })["catch"](function(){ cb(lsGet()); });
+      return;
+    }catch(e){}
+  }
+  cb(lsGet());
+}
+function lsGet(){
+  if(memStore) return memStore;
+  try{ var s = window.localStorage.getItem(HKEY); return s ? (JSON.parse(s) || []) : []; }
+  catch(e){ return memStore || []; }
+}
+function saveHistory(list, cb){
+  memStore = list;
+  var json = JSON.stringify(list);
+  if(window.storage && window.storage.set){
+    try{
+      window.storage.set(HKEY, json).then(function(){ if(cb) cb(); })["catch"](function(){ lsSet(json); if(cb) cb(); });
+      return;
+    }catch(e){}
+  }
+  lsSet(json); if(cb) cb();
+}
+function lsSet(json){ try{ window.localStorage.setItem(HKEY, json); }catch(e){} }
+
+/* ---- 音声（Safari/iOS 対応） ---- */
+var hasTTS = ("speechSynthesis" in window) && (typeof SpeechSynthesisUtterance !== "undefined");
+var voices = [], chosen = null, rate = 1.0, muted = false;
+var sQ = [], sBusy = false, unlocked = false, guard = null, drainCbs = [];
+function vScore(v){
+  var n = (v.name||"").toLowerCase(), s = 0;
+  if(/enhanced|premium|拡張|siri|neural/.test(n)) s += 60;
+  if(/google/.test(n)) s += 45;
+  if(/kyoko|o-?ren|otoya|hattori|nanami|ayumi|haruka|ichiro|keita|sayaka/.test(n)) s += 30;
+  if(v.localService === false) s += 10;
+  if(/compact|eloquence/.test(n)) s -= 40;
+  return s;
+}
+function loadVoices(){
+  if(!hasTTS) return;
+  var all = window.speechSynthesis.getVoices() || [];
+  var ja = all.filter(function(v){ return v.lang && v.lang.toLowerCase().replace("_","-").indexOf("ja") === 0; });
+  if(!ja.length) return;
+  ja.sort(function(a,b){ return vScore(b) - vScore(a); });
+  voices = ja;
+  if(!chosen || ja.indexOf(chosen) === -1) chosen = ja[0];
+  fillVoices();
+}
+function fillVoices(){
+  var sel = document.getElementById("voiceSel"); if(!sel) return;
+  sel.innerHTML = "";
+  if(!voices.length){
+    var o = document.createElement("option");
+    o.textContent = "日本語の こえが みつかりません";
+    sel.appendChild(o); sel.disabled = true; return;
+  }
+  sel.disabled = false;
+  voices.forEach(function(v,i){
+    var o = document.createElement("option");
+    o.value = String(i); o.textContent = v.name;
+    if(v === chosen) o.selected = true;
+    sel.appendChild(o);
+  });
+}
+if(hasTTS){
+  loadVoices();
+  window.speechSynthesis.onvoiceschanged = loadVoices;
+  var tries = 0;
+  var poll = setInterval(function(){ tries++; if(voices.length || tries > 24) clearInterval(poll); loadVoices(); }, 250);
+}
+function unlockSpeech(){
+  if(unlocked || !hasTTS) return;
+  try{ var u = new SpeechSynthesisUtterance(" "); u.volume = 0; u.lang = "ja-JP";
+       window.speechSynthesis.speak(u); unlocked = true; }catch(e){}
+}
+function say(t){ if(muted || !hasTTS || !t) return; sQ.push(t); pump(); }
+function pump(){
+  if(sBusy || !sQ.length) return;
+  var text = sQ.shift(); sBusy = true;
+  var u = new SpeechSynthesisUtterance(text);
+  u.lang = "ja-JP"; if(chosen) u.voice = chosen;
+  u.rate = rate; u.pitch = 1.0; u.volume = 1.0;
+  function fin(){
+    if(guard){ clearTimeout(guard); guard = null; }
+    if(!sBusy) return;
+    sBusy = false;
+    if(sQ.length){ setTimeout(pump, 90); } else { flushDrain(); }
+  }
+  u.onend = fin; u.onerror = fin;
+  try{ window.speechSynthesis.speak(u); }catch(e){ fin(); return; }
+  guard = setTimeout(fin, 1200 + text.length * 190);
+}
+function stopSpeech(){
+  sQ = []; sBusy = false;
+  if(guard){ clearTimeout(guard); guard = null; }
+  if(hasTTS){ try{ window.speechSynthesis.cancel(); }catch(e){} }
+  flushDrain();
+}
+function flushDrain(){
+  if(!drainCbs.length) return;
+  var cbs = drainCbs; drainCbs = [];
+  for(var i=0;i<cbs.length;i++){ try{ cbs[i](); }catch(e){} }
+}
+/* 読み上げが最後まで終わってから cb を呼ぶ（保険で maxWait 後には必ず呼ぶ） */
+function whenSpeechDone(cb, maxWait){
+  if(muted || !hasTTS || (!sBusy && !sQ.length)){ cb(); return; }
+  var fired = false;
+  function once(){ if(fired) return; fired = true; cb(); }
+  drainCbs.push(once);
+  setTimeout(once, maxWait || 9000);
+}
+
+/* ---- 効果音 ---- */
+var actx = null;
+function ensureAudio(){
+  var AC = window.AudioContext || window.webkitAudioContext; if(!AC) return;
+  if(!actx){ try{ actx = new AC(); }catch(e){ return; } }
+  if(actx.state === "suspended") actx.resume();
+}
+function beep(fs, dur){
+  if(muted) return; ensureAudio(); if(!actx) return;
+  var t0 = actx.currentTime;
+  fs.forEach(function(f,i){
+    var o = actx.createOscillator(), g = actx.createGain();
+    o.type = "sine"; o.frequency.value = f;
+    g.gain.setValueAtTime(0.0001, t0+i*dur);
+    g.gain.exponentialRampToValueAtTime(0.18, t0+i*dur+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0+i*dur+dur*0.9);
+    o.connect(g); g.connect(actx.destination);
+    o.start(t0+i*dur); o.stop(t0+i*dur+dur);
+  });
+}
+function sndOK(){ beep([523.25,659.25,783.99], 0.13); }
+function sndNG(){ beep([330,247], 0.16); }
+
+/* ---- 状態 ---- */
+var line = null, queue = [], q = null, score = 0, asked = 0, total = 0, locked = false;
+var results = [];
+var PRAISE = ["せいかい!よくできたね!","やったー!せいかい!","ピンポーン!じょうずだね!","そのとおり!かしこいね!"];
+
+function shuffle(a){ a = a.slice();
+  for(var i=a.length-1;i>0;i--){ var j = Math.floor(Math.random()*(i+1)); var t=a[i]; a[i]=a[j]; a[j]=t; }
+  return a; }
+function nb(i,d){
+  var n = line.stations.length;
+  if(line.loop) return (i+d+n)%n;
+  var x = i+d; return (x>=0 && x<n) ? x : -1;
+}
+
+/* ---- ろせん選択 ---- */
+function trainSVG(c,s){
+  return '<svg width="'+s+'" height="'+s+'" viewBox="0 0 40 40" aria-hidden="true">'+
+    '<rect x="6" y="10" width="28" height="18" rx="8" fill="'+c+'"/>'+
+    '<rect x="10" y="15" width="8" height="7" rx="2" fill="#fff" opacity="0.9"/>'+
+    '<rect x="22" y="15" width="8" height="7" rx="2" fill="#fff" opacity="0.9"/>'+
+    '<circle cx="13" cy="30" r="3.2" fill="#2B3A55"/>'+
+    '<circle cx="27" cy="30" r="3.2" fill="#2B3A55"/></svg>';
+}
+function renderCats(){
+  var wrap = document.getElementById("catList"); wrap.innerHTML = "";
+  GROUPS.forEach(function(g, gi){
+    var box = document.createElement("div");
+    box.className = "cat" + (gi === 1 ? " open" : "");
+    var head = document.createElement("button");
+    head.className = "cat-head";
+    head.innerHTML = '<span>'+g.cat+'<span class="arw">›</span></span><span class="cnt">'+g.lines.length+'ろせん</span>';
+    head.addEventListener("click", function(){
+      box.className = (box.className.indexOf("open") === -1) ? "cat open" : "cat";
+    });
+    box.appendChild(head);
+    var body = document.createElement("div"); body.className = "cat-body";
+    g.lines.forEach(function(L){
+      var b = document.createElement("button");
+      b.className = "line-card";
+      b.style.setProperty("--cs", L.color+"55");
+      b.innerHTML = '<span class="badge" style="background:'+L.color+'22;">'+trainSVG(L.color,26)+'</span>'+
+        '<span class="meta"><span class="name">'+L.name+'</span>'+
+        '<span class="desc">'+(L.loop?"かんじょうせん ・ ":"")+'えき '+L.stations.length+'つ</span></span>'+
+        '<span class="chev">›</span>';
+      b.addEventListener("click", function(){ ensureAudio(); unlockSpeech(); start(L); });
+      body.appendChild(b);
+    });
+    box.appendChild(body); wrap.appendChild(box);
+  });
+}
+
+/* ---- クイズ ---- */
+function start(L){
+  line = L; score = 0; asked = 0; results = []; locked = false;
+  document.getElementById("starCount").textContent = "0";
+  document.getElementById("pillDot").style.background = L.color;
+  document.getElementById("pillName").textContent = L.name;
+  document.getElementById("speakBtn").style.background = L.color;
+  var valid = [];
+  for(var i=0;i<L.stations.length;i++){ if(nb(i,-1) !== -1 && nb(i,1) !== -1) valid.push(i); }
+  queue = shuffle(valid).slice(0, QPR);
+  total = queue.length;
+  drawProgress();
+  show("screen-quiz");
+  next();
+}
+function drawProgress(){
+  var p = document.getElementById("progress"); p.innerHTML = "";
+  for(var i=0;i<total;i++){
+    var b = document.createElement("i");
+    if(results[i] === true) b.className = "ok";
+    else if(results[i] === false) b.className = "ng";
+    p.appendChild(b);
+  }
+}
+function build(){
+  var ti = queue[0], pi = nb(ti,-1), ni = nb(ti,1);
+  var used = {}; used[ti]=1; used[pi]=1; used[ni]=1;
+  var pool = [];
+  for(var i=0;i<line.stations.length;i++){ if(!used[i]) pool.push(line.stations[i]); }
+  var opts = shuffle([line.stations[ti]].concat(shuffle(pool).slice(0,3)));
+  return { prev:line.stations[pi], next:line.stations[ni], target:line.stations[ti], options:opts };
+}
+function draw(prev, nxt){
+  var NS = "http://www.w3.org/2000/svg";
+  var svg = document.getElementById("segSvg");
+  while(svg.firstChild) svg.removeChild(svg.firstChild);
+  var y = 78, x1 = 44, xm = 160, x2 = 276;
+  var tr = document.createElementNS(NS,"line");
+  tr.setAttribute("x1",x1); tr.setAttribute("y1",y);
+  tr.setAttribute("x2",x2); tr.setAttribute("y2",y);
+  tr.setAttribute("stroke", line.color); tr.setAttribute("stroke-width","6");
+  tr.setAttribute("stroke-dasharray","2 13"); tr.setAttribute("stroke-linecap","round");
+  svg.appendChild(tr);
+  function txt(x,ty,size,fill,weight,content){
+    var t = document.createElementNS(NS,"text");
+    t.setAttribute("x",x); t.setAttribute("y",ty);
+    t.setAttribute("text-anchor","middle"); t.setAttribute("font-size",size);
+    t.setAttribute("fill",fill); t.setAttribute("font-family","inherit");
+    if(weight) t.setAttribute("font-weight",weight);
+    t.textContent = content; return t;
+  }
+  function node(x, st, unknown){
+    var g = document.createElementNS(NS,"g");
+    var c = document.createElementNS(NS,"circle");
+    c.setAttribute("cx",x); c.setAttribute("cy",y);
+    c.setAttribute("r", unknown ? 22 : 16);
+    c.setAttribute("fill", unknown ? "#FFF3D0" : "#ffffff");
+    c.setAttribute("stroke", unknown ? "#C88A00" : line.color);
+    c.setAttribute("stroke-width", unknown ? 4 : 5);
+    if(unknown) c.setAttribute("stroke-dasharray","6 5");
+    g.appendChild(c);
+    if(unknown){
+      g.appendChild(txt(x, y+9, 26, "#C88A00", "800", "?"));
+    }else{
+      var kl = st.k.length, hl = st.h.length;
+      var fk = kl >= 8 ? 9 : (kl >= 6 ? 10.5 : (kl >= 5 ? 12 : 14));
+      var fh = hl >= 11 ? 7 : (hl >= 8 ? 8 : 9.5);
+      g.appendChild(txt(x, 26, fh, "#6B7A99", null, st.h));
+      g.appendChild(txt(x, 46, fk, "#2B3A55", "700", st.k));
+    }
+    svg.appendChild(g);
+  }
+  node(x1, prev, false); node(xm, null, true); node(x2, nxt, false);
+}
+function drawChoices(){
+  var w = document.getElementById("choices"); w.innerHTML = "";
+  q.options.forEach(function(o){
+    var b = document.createElement("button");
+    b.className = "choice";
+    var fs = o.k.length >= 8 ? 12.5 : (o.k.length >= 6 ? 14 : 16);
+    b.innerHTML = '<span class="ck" style="font-size:'+fs+'px">'+o.k+'</span><span class="ch">'+o.h+'</span>';
+    b.setAttribute("data-k", o.k);
+    b.addEventListener("click", function(){ tap(o,b); });
+    w.appendChild(b);
+  });
+}
+function next(){
+  if(!queue.length){ finish(); return; }
+  locked = false;
+  q = build();
+  document.getElementById("qNo").textContent = String(asked + 1);
+  draw(q.prev, q.next); drawChoices(); askQuiet();
+}
+function ask(){
+  stopSpeech();
+  say(q.prev.h + "えきと、" + q.next.h + "えきの、あいだの えきは、なーんだ?");
+}
+function askQuiet(){
+  say(q.prev.h + "えきと、" + q.next.h + "えきの、あいだの えきは、なーんだ?");
+}
+
+function showVerdict(ok, done){
+  var v = document.getElementById("verdict");
+  document.getElementById("verdictMark").textContent = ok ? "◯" : "✕";
+  var sub = document.getElementById("verdictSub");
+  if(ok){
+    sub.innerHTML = '<span class="lead">せいかい!</span>'+
+      '<span class="kana">'+q.target.h+'</span>'+
+      '<span class="kanji">'+q.target.k+'</span>';
+  }else{
+    sub.innerHTML = '<span class="lead">こたえは…</span>'+
+      '<span class="kana">'+q.target.h+'</span>'+
+      '<span class="kanji">'+q.target.k+'</span>';
+  }
+  v.className = "show " + (ok ? "ok" : "ng");
+  // ◯✕の最低表示時間と、読み上げ完了の両方を待ってから次へ
+  var shown = false, spoken = false;
+  function tryGo(){
+    if(!(shown && spoken)) return;
+    v.className = "";
+    // 読み上げが終わってからも、答えを見る時間をすこし取る
+    setTimeout(function(){ if(done) done(); }, ok ? 300 : 1000);
+  }
+  setTimeout(function(){ shown = true; tryGo(); }, ok ? 1400 : 3500);
+  whenSpeechDone(function(){ spoken = true; tryGo(); });
+}
+
+function tap(o, btn){
+  if(!q || locked) return;
+  locked = true;
+  ensureAudio(); unlockSpeech(); stopSpeech();
+  var isOK = (o.k === q.target.k);
+  var all = document.querySelectorAll(".choice");
+  for(var i=0;i<all.length;i++){
+    all[i].style.pointerEvents = "none";
+    var k = all[i].getAttribute("data-k");
+    if(k === q.target.k) all[i].className = "choice correct";
+    else if(!isOK && all[i] === btn) all[i].className = "choice picked-wrong";
+    else all[i].className = "choice dim";
+  }
+  results[asked] = isOK;
+  asked++;
+  if(isOK){
+    score++;
+    document.getElementById("starCount").textContent = String(score);
+    sndOK(); burst(btn);
+    say(PRAISE[Math.floor(Math.random()*PRAISE.length)]);
+  }else{
+    sndNG();
+    say("ざんねん。こたえは、" + q.target.h + "えき、だよ。");
+  }
+  drawProgress();
+  showVerdict(isOK, function(){
+    queue.shift(); next();
+  });
+}
+function burst(btn){
+  var app = document.getElementById("app");
+  var r = btn.getBoundingClientRect(), pr = app.getBoundingClientRect();
+  var cx = r.left - pr.left + r.width/2, cy = r.top - pr.top + r.height/2;
+  var em = ["⭐","✨","🌟"];
+  var canAnim = typeof Element !== "undefined" && Element.prototype && Element.prototype.animate;
+  for(var i=0;i<7;i++){
+    (function(){
+      var el = document.createElement("div");
+      el.className = "burst"; el.style.left = cx+"px"; el.style.top = cy+"px";
+      el.textContent = em[Math.floor(Math.random()*em.length)];
+      app.appendChild(el);
+      var a = Math.random()*Math.PI*2, d = 38 + Math.random()*42;
+      var dx = Math.cos(a)*d, dy = Math.sin(a)*d;
+      if(canAnim){
+        var an = el.animate([{transform:"translate(0px,0px) scale(0.6)",opacity:1},
+                             {transform:"translate("+dx+"px,"+dy+"px) scale(1.2)",opacity:0}],
+                            {duration:700+Math.random()*300, easing:"ease-out"});
+        an.onfinish = function(){ if(el.parentNode) el.parentNode.removeChild(el); };
+        setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); }, 1200);
+      }else{
+        el.style.transition = "transform .8s ease-out, opacity .8s ease-out";
+        setTimeout(function(){ el.style.transform = "translate("+dx+"px,"+dy+"px) scale(1.2)"; el.style.opacity = "0"; }, 16);
+        setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); }, 1000);
+      }
+    })();
+  }
+}
+
+/* ---- 結果 ---- */
+function starRating(sc, tot){
+  var p = tot ? sc/tot : 0;
+  if(p >= 1) return 5; if(p >= 0.85) return 4; if(p >= 0.6) return 3; if(p >= 0.35) return 2; if(p > 0) return 1;
+  return 0;
+}
+function finish(){
+  var pct = total ? Math.round(score/total*100) : 0;
+  var rating = starRating(score, total);
+  var emoji, title;
+  if(pct === 100){ emoji = "🏆"; title = "パーフェクト!"; }
+  else if(pct >= 75){ emoji = "🎉"; title = "よくできました!"; }
+  else if(pct >= 50){ emoji = "😊"; title = "いい かんじ!"; }
+  else { emoji = "🚂"; title = "つぎも がんばろう!"; }
+  document.getElementById("doneEmoji").textContent = emoji;
+  document.getElementById("doneTitle").textContent = title;
+  document.getElementById("doneLine").textContent = line.name;
+  document.getElementById("doneTotal").textContent = String(total);
+  document.getElementById("doneScore").textContent = String(score);
+  document.getElementById("donePct").textContent = "せいかいりつ " + pct + "%";
+  var s = "";
+  for(var i=0;i<5;i++) s += (i < rating ? "⭐" : "☆");
+  document.getElementById("doneStars").textContent = s;
+  stopSpeech();
+  say(total + "もんちゅう、" + score + "もん せいかい!" + (pct === 100 ? "パーフェクト!すごいね!" : "よく がんばったね!"));
+
+  var rec = { t: Date.now(), line: line.name, color: line.color, sc: score, tt: total };
+  loadHistory(function(list){
+    list.unshift(rec);
+    if(list.length > 50) list = list.slice(0,50);
+    saveHistory(list);
+  });
+  show("screen-complete");
+}
+
+/* ---- 履歴 ---- */
+function fmt(ts){
+  var d = new Date(ts);
+  function p(n){ return (n<10?"0":"") + n; }
+  return (d.getMonth()+1) + "/" + d.getDate() + " " + p(d.getHours()) + ":" + p(d.getMinutes());
+}
+function renderHistory(){
+  loadHistory(function(list){
+    var wrap = document.getElementById("histList");
+    wrap.innerHTML = "";
+    var games = list.length, corr = 0, best = null;
+    list.forEach(function(r){
+      corr += r.sc;
+      var p = r.tt ? r.sc/r.tt : 0;
+      if(best === null || p > best) best = p;
+    });
+    document.getElementById("hsGames").textContent = String(games);
+    document.getElementById("hsCorrect").textContent = String(corr);
+    document.getElementById("hsBest").textContent = (best === null) ? "-" : (Math.round(best*100) + "%");
+    if(!games){
+      wrap.innerHTML = '<p class="empty">まだ きろくが ないよ。<br>クイズを あそぶと ここに たまります!</p>';
+      return;
+    }
+    list.forEach(function(r){
+      var row = document.createElement("div");
+      row.className = "hrow";
+      var st = starRating(r.sc, r.tt), s = "";
+      for(var i=0;i<st;i++) s += "⭐";
+      row.innerHTML = '<span class="dot" style="background:'+(r.color||"#B9C6D9")+'"></span>'+
+        '<span class="info"><span class="ln">'+r.line+'</span>'+
+        '<span class="dt">'+fmt(r.t)+'　'+s+'</span></span>'+
+        '<span class="sc">'+r.sc+'<small>/'+r.tt+'</small></span>';
+      wrap.appendChild(row);
+    });
+  });
+}
+
+function show(id){
+  var ss = document.querySelectorAll(".screen");
+  for(var i=0;i<ss.length;i++) ss[i].className = "screen";
+  document.getElementById(id).className = "screen active";
+  window.scrollTo(0,0);
+}
+
+/* ---- UI ---- */
+document.getElementById("gearBtn").addEventListener("click", function(){
+  var p = document.getElementById("panel");
+  p.className = (p.className.indexOf("open") === -1) ? "panel open" : "panel";
+  loadVoices();
+});
+document.getElementById("histBtn").addEventListener("click", function(){
+  stopSpeech(); renderHistory(); show("screen-hist");
+});
+document.getElementById("toHistBtn").addEventListener("click", function(){
+  stopSpeech(); renderHistory(); show("screen-hist");
+});
+document.getElementById("histBackBtn").addEventListener("click", function(){ show("screen-select"); });
+document.getElementById("histClearBtn").addEventListener("click", function(){
+  if(window.confirm("これまでの きろくを ぜんぶ けしますか?")){
+    saveHistory([], function(){ renderHistory(); });
+  }
+});
+document.getElementById("voiceSel").addEventListener("change", function(e){
+  var i = parseInt(e.target.value,10); if(!isNaN(i) && voices[i]) chosen = voices[i];
+});
+document.getElementById("rateRange").addEventListener("input", function(e){
+  rate = parseFloat(e.target.value);
+  document.getElementById("rateVal").textContent = String(rate);
+});
+document.getElementById("testBtn").addEventListener("click", function(){
+  unlockSpeech(); stopSpeech();
+  say("とうきょうえきと、しんばしえきの、あいだの えきは、なーんだ?");
+});
+document.getElementById("muteBtn").addEventListener("click", function(e){
+  muted = !muted;
+  e.currentTarget.textContent = muted ? "🔇" : "🔊";
+  if(muted) stopSpeech(); else unlockSpeech();
+});
+document.getElementById("speakBtn").addEventListener("click", function(){ ensureAudio(); unlockSpeech(); ask(); });
+document.getElementById("retryBtn").addEventListener("click", function(){ stopSpeech(); start(line); });
+document.getElementById("otherBtn").addEventListener("click", function(){ stopSpeech(); show("screen-select"); });
+document.addEventListener("touchstart", function once(){ ensureAudio(); unlockSpeech();
+  document.removeEventListener("touchstart", once); }, false);
+
+renderCats();
+})();
+</script>
+<script>
+/* ---- Service Worker 登録（オフライン動作 + 自動更新） ---- */
+(function(){
+  if(!("serviceWorker" in navigator)) return;
+  window.addEventListener("load", function(){
+    navigator.serviceWorker.register("sw.js").then(function(reg){
+      // 新しいバージョンが見つかったら知らせる
+      reg.addEventListener("updatefound", function(){
+        var nw = reg.installing;
+        if(!nw) return;
+        nw.addEventListener("statechange", function(){
+          if(nw.state === "installed" && navigator.serviceWorker.controller){
+            showUpdateBar();
+          }
+        });
+      });
+      // 起動のたびに更新をチェック
+      try{ reg.update(); }catch(e){}
+    })["catch"](function(){ /* 失敗してもアプリは普通に動く */ });
+
+    var reloading = false;
+    navigator.serviceWorker.addEventListener("controllerchange", function(){
+      if(reloading) return; reloading = true; window.location.reload();
+    });
+  });
+
+  function showUpdateBar(){
+    if(document.getElementById("updBar")) return;
+    var bar = document.createElement("div");
+    bar.id = "updBar";
+    bar.style.cssText = "position:fixed;left:12px;right:12px;bottom:12px;z-index:200;"+
+      "background:#2B3A55;color:#fff;border-radius:16px;padding:13px 16px;display:flex;"+
+      "align-items:center;gap:12px;font-size:13.5px;box-shadow:0 6px 18px rgba(0,0,0,.25);"+
+      "font-family:inherit;";
+    bar.innerHTML = '<span style="flex:1">あたらしい バージョンが あります</span>'+
+      '<button id="updBtn" style="border:none;border-radius:999px;padding:9px 16px;'+
+      'background:#FFC93C;color:#5c4000;font-weight:800;font-size:13px;font-family:inherit;'+
+      'cursor:pointer;">こうしん</button>';
+    document.body.appendChild(bar);
+    document.getElementById("updBtn").addEventListener("click", function(){
+      navigator.serviceWorker.getRegistration().then(function(reg){
+        if(reg && reg.waiting) reg.waiting.postMessage({type:"SKIP_WAITING"});
+        else window.location.reload();
+      });
+    });
+  }
+})();
+</script>
+</body>
+</html>
