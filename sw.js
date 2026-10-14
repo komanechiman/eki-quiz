@@ -4,7 +4,7 @@
    - それ以外は cache-first（速い）
    ファイルを更新したら CACHE_VERSION の数字を上げてください。 */
 
-var CACHE_VERSION = "v2";
+var CACHE_VERSION = "v3";
 var CACHE_NAME = "eki-quiz-" + CACHE_VERSION;
 
 var PRECACHE = [

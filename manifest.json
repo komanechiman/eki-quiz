@@ -7,11 +7,19 @@
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
-  "display_override": ["standalone", "fullscreen", "minimal-ui"],
+  "display_override": [
+    "standalone",
+    "fullscreen",
+    "minimal-ui"
+  ],
   "orientation": "portrait",
-  "background_color": "#EAF6FF",
-  "theme_color": "#EAF6FF",
-  "categories": ["education", "kids", "games"],
+  "background_color": "#F7F7F5",
+  "theme_color": "#F7F7F5",
+  "categories": [
+    "education",
+    "kids",
+    "games"
+  ],
   "icons": [
     {
       "src": "icons/icon-192.png",
