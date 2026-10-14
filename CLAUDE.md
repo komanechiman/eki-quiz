@@ -5,7 +5,7 @@
 
 - 公開URL: https://komanechiman.github.io/eki-quiz/
 - 公開先: GitHub Pages（main ブランチ / ルート）
-- ローカル: `D:\成果物\app\eki-quiz`
+- ローカル: `D:\dev\03_claude\eki-quiz`
 - 対象端末: iPhone（Safari / Edge）、Pixel 9a（Chrome）。スマホ縦持ちが前提
 
 ## ファイル構成
@@ -104,7 +104,7 @@ README.md
 ## デプロイ
 
 ```powershell
-cd D:\成果物\app\eki-quiz
+cd D:\dev\03_claude\eki-quiz
 git pull
 # 編集 → sw.js の CACHE_VERSION を上げる
 git add .
